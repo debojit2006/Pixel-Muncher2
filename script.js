@@ -1,421 +1,565 @@
-// JavaScript logic based on the project specification
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Get DOM Elements ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-
     const scoreEl = document.getElementById('score');
-    const highScoreEl = document.getElementById('high-score');
+    const highscoreEl = document.getElementById('highscore');
     const livesEl = document.getElementById('lives');
-    
     const startMenu = document.getElementById('start-menu');
     const gameOverMenu = document.getElementById('game-over-menu');
     const startEasyBtn = document.getElementById('start-easy');
     const startHardBtn = document.getElementById('start-hard');
     const playAgainBtn = document.getElementById('play-again');
     const gameOverTitle = document.getElementById('game-over-title');
-    const finalScoreEl = document.getElementById('final-score');
-    const finalHighScoreEl = document.getElementById('final-high-score');
+    const finalScoreText = document.getElementById('final-score-text');
+    const finalHighscoreText = document.getElementById('final-highscore-text');
 
-    // The game's map layout
-    const grid = [
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1],
-        [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
-        [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
-        [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1],
-        [1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1],
-        [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1],
-        [1, 1, 1, 1, 0, 1, 0, 1, 9, 9, 9, 9, 1, 0, 1, 1, 0, 1, 1, 1],
-        [1, 0, 0, 0, 0, 0, 0, 1, 9, 9, 9, 9, 1, 0, 0, 0, 0, 3, 0, 1],
-        [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1],
-        [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1],
-        [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
-        [1, 3, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3, 1],
-        [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1],
-        [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    ];
-    
-    const TILE_SIZE = 20; // The logical size of a tile in the grid array
+    // --- Game Constants & Variables ---
+    const GRID_SIZE = 20;
+    let TILE_SIZE; // Will be calculated based on canvas size
     const V = 4; // Base speed unit
-    
-    let tileSize; // The actual pixel size of a tile on the canvas
-    let player, ghost;
-    let score, highScore, lives;
-    let difficulty;
-    let gameState = 'menu'; // menu, playing, paused, gameOver
-    let totalDots = 0;
-    let originalGrid = JSON.parse(JSON.stringify(grid)); // Deep copy for resetting the game
 
-    // --- Game Objects ---
+    // Player & Ghost speeds based on spec
+    const PLAYER_SPEED = 0.8 * V;
+    const GHOST_SPEED_EASY = 0.75 * V * 0.75;
+    const GHOST_SPEED_HARD = 0.75 * V * 1.25;
+
+    // Maze Layout: 1=Wall, 0=Dot, 2=Empty, 3=Power Pellet, 9=Ghost House
+    const initialMap = [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 3, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 3, 1],
+        [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+        [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 0, 1, 1, 1, 2, 1, 1, 2, 1, 1, 1, 0, 1, 1, 1, 1],
+        [1, 1, 1, 1, 0, 1, 2, 9, 9, 9, 9, 9, 9, 2, 1, 0, 1, 1, 1, 1],
+        [1, 1, 1, 1, 0, 1, 2, 9, 1, 1, 1, 1, 9, 2, 1, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 2, 2, 9, 1, 2, 2, 1, 9, 2, 2, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 0, 1, 2, 9, 1, 1, 1, 1, 9, 2, 1, 0, 1, 1, 1, 1],
+        [1, 1, 1, 1, 0, 1, 2, 9, 9, 9, 9, 9, 9, 2, 1, 0, 1, 1, 1, 1],
+        [1, 1, 1, 1, 0, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 0, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        [1, 3, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 3, 1],
+        [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+        [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1],
+        [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ];
+    let map;
+
+    // Game State
+    let gameState = 'menu'; // 'menu', 'playing', 'paused', 'gameOver'
+    let score = 0;
+    let lives = 3;
+    let highScore = localStorage.getItem('pixelMuncherHighScore') || 0;
+    let totalDots = 0;
+    let dotsEaten = 0;
+    let lastTime = 0;
+    let animationFrameId;
+
+    let player;
+    let ghost;
+    
+    // --- 3. Controls & Input ---
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    // --- Classes ---
     class Character {
-        constructor(x, y, radius, colorName) {
+        constructor(x, y, speed) {
             this.x = x;
             this.y = y;
-            this.radius = radius;
-            this.colorName = colorName; // Store the CSS variable name
-            this.color = getCssVar(colorName); // Get initial color
-            this.direction = { x: 0, y: 0 };
-            this.nextDirection = { x: 0, y: 0 };
-            this.speed = 0;
+            this.speed = speed;
+            this.radius = TILE_SIZE / 2.5;
+            this.dir = { x: 0, y: 0 };
+        }
+
+        // A helper to get the grid coordinates of the character
+        getGridPos() {
+            return {
+                row: Math.floor(this.y / TILE_SIZE),
+                col: Math.floor(this.x / TILE_SIZE)
+            };
+        }
+    }
+    
+    class Player extends Character {
+        constructor(x, y, speed) {
+            super(x, y, speed);
+            this.nextDir = { x: 0, y: 0 }; // Input buffer
         }
 
         draw() {
+            ctx.fillStyle = 'var(--player)';
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
+            ctx.arc(this.x, this.y, this.radius, 0.2 * Math.PI, 1.8 * Math.PI);
+            ctx.lineTo(this.x, this.y);
             ctx.fill();
-            ctx.closePath();
         }
 
         update() {
-            // Input buffering: change direction if possible
-            if (this.canChangeDirection(this.nextDirection)) {
-                this.direction = { ...this.nextDirection };
-            }
-            
-            const nextX = this.x + this.direction.x * this.speed;
-            const nextY = this.y + this.direction.y * this.speed;
+            this.handleMovement();
+            this.eat();
+        }
 
-            // Move if the path is clear
+        isAtIntersection() {
+            const centerOffset = 0.05; // a small tolerance
+            const xInTile = (this.x / TILE_SIZE) % 1;
+            const yInTile = (this.y / TILE_SIZE) % 1;
+            return Math.abs(xInTile - 0.5) < centerOffset && Math.abs(yInTile - 0.5) < centerOffset;
+        }
+
+        handleMovement() {
+            // --- Input Buffering Logic ---
+            if (this.isAtIntersection()) {
+                const { row, col } = this.getGridPos();
+                // Check if the buffered direction is valid
+                if (this.nextDir.x !== 0 || this.nextDir.y !== 0) {
+                    const nextCol = col + this.nextDir.x;
+                    const nextRow = row + this.nextDir.y;
+                    if (map[nextRow][nextCol] !== 1 && map[nextRow][nextCol] !== 9) {
+                        this.dir = { ...this.nextDir };
+                        this.nextDir = { x: 0, y: 0 };
+                    }
+                }
+            }
+
+            // Check for wall collision in the current direction
+            const nextX = this.x + this.dir.x * this.speed;
+            const nextY = this.y + this.dir.y * this.speed;
+            
             if (!this.checkWallCollision(nextX, nextY)) {
                 this.x = nextX;
                 this.y = nextY;
+            } else {
+                // Snap to grid if colliding
+                const { row, col } = this.getGridPos();
+                this.x = col * TILE_SIZE + TILE_SIZE / 2;
+                this.y = row * TILE_SIZE + TILE_SIZE / 2;
             }
+
+            // Handle wrapping around the screen for the two horizontal gaps
+            if (this.x < -this.radius) this.x = canvas.width + this.radius;
+            if (this.x > canvas.width + this.radius) this.x = -this.radius;
         }
 
         checkWallCollision(x, y) {
-            const buffer = this.radius * 0.9; // Check points around the character's circumference
+            const margin = this.radius * 0.9;
             for (let i = -1; i <= 1; i++) {
                 for (let j = -1; j <= 1; j++) {
-                    const gridX = Math.floor((x + i * buffer) / tileSize);
-                    const gridY = Math.floor((y + j * buffer) / tileSize);
-                    if (grid[gridY] && (grid[gridY][gridX] === 1 || grid[gridY][gridX] === 9)) {
-                        return true; // Collision with a wall or ghost house
+                    const checkX = x + i * margin;
+                    const checkY = y + j * margin;
+                    const col = Math.floor(checkX / TILE_SIZE);
+                    const row = Math.floor(checkY / TILE_SIZE);
+                    if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+                        const tile = map[row][col];
+                        if (tile === 1 || tile === 9) { // Wall or ghost house
+                            return true;
+                        }
                     }
                 }
             }
             return false;
         }
         
-        canChangeDirection(dir) {
-            if (dir.x === 0 && dir.y === 0) return false;
-            
-            const currentTileX = Math.round(this.x / tileSize);
-            const currentTileY = Math.round(this.y / tileSize);
-            
-            // Check if the character is close enough to the center of a tile to turn
-            const isAtIntersection = Math.abs(this.x - (currentTileX * tileSize + tileSize / 2)) < this.speed &&
-                                     Math.abs(this.y - (currentTileY * tileSize + tileSize / 2)) < this.speed;
+        eat() {
+            const { row, col } = this.getGridPos();
+            if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
 
-            if (!isAtIntersection) return false;
-            
-            const nextGridX = currentTileX + dir.x;
-            const nextGridY = currentTileY + dir.y;
-            
-            // Check if the next tile in the desired direction is not a wall
-            return grid[nextGridY] && grid[nextGridY][nextGridX] !== 1 && grid[nextGridY][nextGridX] !== 9;
+            const tile = map[row][col];
+            if (tile === 0) { // Standard Dot
+                map[row][col] = 2; // Empty space
+                score += 10;
+                dotsEaten++;
+            } else if (tile === 3) { // Power Pellet
+                map[row][col] = 2; // Empty space
+                score += 50;
+                dotsEaten++;
+                // Note: In this version, power pellets don't make ghosts vulnerable.
+            }
+            updateScoreUI();
         }
     }
-    
+
     class Ghost extends Character {
-         update() {
-            this.aiMove();
-            super.update();
+        constructor(x, y, speed) {
+            super(x, y, speed);
+            this.dir = { x: 1, y: 0 }; // Start moving right
         }
 
-        aiMove() {
-            const currentTileX = Math.round(this.x / tileSize);
-            const currentTileY = Math.round(this.y / tileSize);
+        draw() {
+            ctx.fillStyle = 'var(--ghost)';
+            // Body
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, Math.PI, 0);
+            ctx.lineTo(this.x + this.radius, this.y + this.radius);
+            ctx.lineTo(this.x + this.radius * 0.5, this.y + this.radius * 0.7);
+            ctx.lineTo(this.x, this.y + this.radius);
+            ctx.lineTo(this.x - this.radius * 0.5, this.y + this.radius * 0.7);
+            ctx.lineTo(this.x - this.radius, this.y + this.radius);
+            ctx.closePath();
+            ctx.fill();
 
-            // Check if the ghost is at the center of a tile to make a decision
-            const isAtIntersection = Math.abs(this.x - (currentTileX * tileSize + tileSize/2)) < this.speed &&
-                                     Math.abs(this.y - (currentTileY * tileSize + tileSize/2)) < this.speed;
+            // Eyes
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(this.x - this.radius * 0.4, this.y - this.radius * 0.2, this.radius * 0.2, 0, 2 * Math.PI);
+            ctx.arc(this.x + this.radius * 0.4, this.y - this.radius * 0.2, this.radius * 0.2, 0, 2 * Math.PI);
+            ctx.fill();
+        }
 
-            if (isAtIntersection) {
-                const possibleMoves = [];
-                const directions = [
-                    { x: 0, y: -1 }, // Up
-                    { x: 0, y: 1 },  // Down
-                    { x: -1, y: 0 }, // Left
-                    { x: 1, y: 0 }   // Right
-                ];
+        update() {
+            this.handleMovement();
+        }
 
-                for (const move of directions) {
-                    // AI rule: Don't reverse direction unless at a dead end
-                    if (possibleMoves.length > 1 && move.x === -this.direction.x && move.y === -this.direction.y) {
-                        continue;
-                    }
-                    
-                    const nextGridX = currentTileX + move.x;
-                    const nextGridY = currentTileY + move.y;
+        isAtIntersection() {
+            // This logic is crucial for AI decisions.
+            const centerOffset = this.speed / TILE_SIZE / 2;
+            const xInTile = (this.x / TILE_SIZE) % 1;
+            const yInTile = (this.y / TILE_SIZE) % 1;
+            return Math.abs(xInTile - 0.5) < centerOffset && Math.abs(yInTile - 0.5) < centerOffset;
+        }
 
-                    // Check if the potential move is valid (not a wall)
-                    if (grid[nextGridY] && grid[nextGridY][nextGridX] !== 1 && grid[nextGridY][nextGridX] !== 9) {
-                        // Calculate Euclidean distance to the player
-                        const dist = Math.hypot(
-                            (nextGridX * tileSize) - player.x,
-                            (nextGridY * tileSize) - player.y
-                        );
-                        possibleMoves.push({ move, dist });
-                    }
+        handleMovement() {
+            if (this.isAtIntersection()) {
+                this.dir = this.getChaseDirection();
+                // Snap to grid to prevent getting stuck
+                const { row, col } = this.getGridPos();
+                this.x = col * TILE_SIZE + TILE_SIZE / 2;
+                this.y = row * TILE_SIZE + TILE_SIZE / 2;
+            }
+
+            this.x += this.dir.x * this.speed;
+            this.y += this.dir.y * this.speed;
+        }
+
+        // --- 5. Artificial Intelligence (AI) ---
+        getChaseDirection() {
+            const { row, col } = this.getGridPos();
+            const possibleMoves = [];
+
+            // Check potential moves: up, down, left, right
+            const moves = [
+                { x: 0, y: -1 }, // Up
+                { x: 0, y: 1 },  // Down
+                { x: -1, y: 0 }, // Left
+                { x: 1, y: 0 }   // Right
+            ];
+            
+            for (const move of moves) {
+                // Rule: Ghost cannot reverse direction unless at a dead end
+                if (move.x === -this.dir.x && move.y === -this.dir.y) {
+                    continue;
                 }
-                
-                if (possibleMoves.length > 0) {
-                    // Sort moves by distance to find the shortest path
-                    possibleMoves.sort((a, b) => a.dist - b.dist);
-                    this.direction = possibleMoves[0].move;
-                } else { // Dead end, must reverse
-                     this.direction.x *= -1;
-                     this.direction.y *= -1;
+
+                const nextCol = col + move.x;
+                const nextRow = row + move.y;
+
+                if (nextRow >= 0 && nextRow < GRID_SIZE && nextCol >= 0 && nextCol < GRID_SIZE) {
+                    const tile = map[nextRow][nextCol];
+                    if (tile !== 1 && tile !== 9) { // Can't move into walls or ghost house
+                        possibleMoves.push(move);
+                    }
                 }
             }
+
+            // If stuck in a dead end, the only move is to reverse
+            if (possibleMoves.length === 0) {
+                return { x: -this.dir.x, y: -this.dir.y };
+            }
+
+            // --- Targeting Algorithm: Deterministic Chase ---
+            let bestMove = possibleMoves[0];
+            let minDistance = Infinity;
+
+            for (const move of possibleMoves) {
+                const nextCol = col + move.x;
+                const nextRow = row + move.y;
+                
+                // Euclidean distance
+                const distance = Math.sqrt(
+                    Math.pow(player.getGridPos().col - nextCol, 2) +
+                    Math.pow(player.getGridPos().row - nextRow, 2)
+                );
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    bestMove = move;
+                }
+            }
+            return bestMove;
         }
     }
 
-    // --- Game Setup & State ---
+    // --- Game Setup & Initialization ---
     function init() {
         resizeCanvas();
-        highScore = localStorage.getItem('pixelMuncherHighScore') || 0;
-        updateUI();
-    }
-
-    function startGame(selectedDifficulty) {
-        difficulty = selectedDifficulty;
-        gameState = 'playing';
-        startMenu.style.display = 'none';
-        gameOverMenu.style.display = 'none';
-        
-        resetGame();
-        gameLoop();
+        updateHighScoreUI();
+        setupEventListeners();
     }
     
     function resetGame() {
-        score = 0;
-        lives = 3;
-        // Restore the grid to its original state with all dots
-        for(let i = 0; i < grid.length; i++) {
-            grid[i] = [...originalGrid[i]];
-        }
-        totalDots = grid.flat().filter(tile => tile === 0 || tile === 3).length;
-        resetCharacters();
-        updateUI();
-    }
-    
-    function resetCharacters() {
-        player = new Character(tileSize * 1.5, tileSize * 1.5, tileSize * 0.4, '--player-color');
-        player.speed = 0.8 * V;
+        // Deep copy the initial map to the game map
+        map = initialMap.map(arr => arr.slice());
         
-        ghost = new Ghost(tileSize * 10.5, tileSize * 8.5, tileSize * 0.4, '--ghost-color');
-        ghost.speed = difficulty === 'easy' ? 0.75 * V * 0.75 : 0.75 * V * 1.25;
-        ghost.direction = { x: 1, y: 0 };
+        score = 0;
+        dotsEaten = 0;
+        totalDots = 0;
+        map.forEach(row => {
+            row.forEach(tile => {
+                if (tile === 0 || tile === 3) totalDots++;
+            });
+        });
+
+        // Reset player
+        player = new Player(1 * TILE_SIZE + TILE_SIZE / 2, 1 * TILE_SIZE + TILE_SIZE / 2, PLAYER_SPEED);
+        player.dir = {x: 0, y: 0};
+        player.nextDir = {x: 0, y: 0};
     }
 
-    function updateUI() {
-        scoreEl.textContent = `SCORE: ${score}`;
-        highScoreEl.textContent = `HIGH SCORE: ${highScore}`;
-        livesEl.textContent = 'LIVES: ' + '♥ '.repeat(lives);
-    }
-    
-    function loseLife() {
-        lives--;
-        gameState = 'paused';
-        updateUI();
+    function startGame(difficulty) {
+        resetGame();
+        lives = 3;
+        updateLivesUI();
         
-        if (lives <= 0) {
-            endGame(false); // Game over
-        } else {
-            // Pause briefly before resetting positions
-            setTimeout(() => {
-                resetCharacters();
-                gameState = 'playing';
-            }, 2000); // 2-second pause
+        const ghostSpeed = difficulty === 'easy' ? GHOST_SPEED_EASY : GHOST_SPEED_HARD;
+        ghost = new Ghost(10.5 * TILE_SIZE, 8.5 * TILE_SIZE, ghostSpeed);
+        
+        startMenu.classList.add('hidden');
+        gameOverMenu.classList.add('hidden');
+        
+        gameState = 'playing';
+        lastTime = 0; // Reset timer for the game loop
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        gameLoop();
+    }
+
+    // --- Main Game Loop ---
+    function gameLoop(timestamp) {
+        if (gameState !== 'playing') return;
+
+        animationFrameId = requestAnimationFrame(gameLoop);
+        const deltaTime = timestamp - lastTime;
+        if (deltaTime < 16) return; // Cap at ~60 FPS
+        lastTime = timestamp;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Update & Draw
+        drawMaze();
+        player.update();
+        player.draw();
+        ghost.update();
+        ghost.draw();
+        
+        // Check for game-ending conditions
+        checkPlayerGhostCollision();
+        checkWinCondition();
+    }
+
+    // --- Collision & Win/Loss Logic ---
+    function checkPlayerGhostCollision() {
+        const dx = player.x - ghost.x;
+        const dy = player.y - ghost.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < player.radius + ghost.radius) {
+            handleLifeLost();
         }
     }
-    
+
+    function handleLifeLost() {
+        lives--;
+        updateLivesUI();
+        gameState = 'paused'; // Pause the game briefly
+
+        if (lives <= 0) {
+            endGame(false); // Lost
+        } else {
+            // Reset positions after a short delay
+            setTimeout(() => {
+                player.x = 1 * TILE_SIZE + TILE_SIZE / 2;
+                player.y = 1 * TILE_SIZE + TILE_SIZE / 2;
+                player.dir = {x: 0, y: 0};
+                player.nextDir = {x: 0, y: 0};
+                
+                ghost.x = 10.5 * TILE_SIZE;
+                ghost.y = 8.5 * TILE_SIZE;
+                
+                gameState = 'playing';
+            }, 1500);
+        }
+    }
+
+    function checkWinCondition() {
+        if (dotsEaten >= totalDots) {
+            endGame(true); // Won
+        }
+    }
+
     function endGame(isWin) {
         gameState = 'gameOver';
+        cancelAnimationFrame(animationFrameId);
+        
         if (score > highScore) {
             highScore = score;
             localStorage.setItem('pixelMuncherHighScore', highScore);
         }
+        updateHighScoreUI();
         
         gameOverTitle.textContent = isWin ? "YOU WIN!" : "GAME OVER";
-        finalScoreEl.textContent = `YOUR SCORE: ${score}`;
-        finalHighScoreEl.textContent = `HIGH SCORE: ${highScore}`;
-        gameOverMenu.style.display = 'flex';
+        finalScoreText.textContent = `FINAL SCORE: ${score}`;
+        finalHighscoreText.textContent = `HIGH SCORE: ${highScore}`;
+        gameOverMenu.classList.remove('hidden');
     }
 
-    // --- Drawing & Rendering ---
-    function draw() {
-        // Clear the canvas for the new frame
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        drawGrid();
+    // --- Drawing Functions ---
+    function drawMaze() {
+        for (let row = 0; row < GRID_SIZE; row++) {
+            for (let col = 0; col < GRID_SIZE; col++) {
+                const tile = map[row][col];
+                const x = col * TILE_SIZE;
+                const y = row * TILE_SIZE;
 
-        // Only draw characters if they exist (after game has started)
-        if (player && ghost) {
-            player.draw();
-            ghost.draw();
-        }
-    }
-
-    function drawGrid() {
-        const wallColor = getCssVar('--wall-color');
-        const dotColor = getCssVar('--dot-color');
-        const pelletColor = getCssVar('--power-pellet-color');
-
-        for (let y = 0; y < grid.length; y++) {
-            for (let x = 0; x < grid[y].length; x++) {
-                const tile = grid[y][x];
                 if (tile === 1) { // Wall
-                    ctx.fillStyle = wallColor;
-                    ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                    ctx.fillStyle = 'var(--walls)';
+                    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
                 } else if (tile === 0) { // Standard Dot
+                    ctx.fillStyle = 'var(--dots)';
                     ctx.beginPath();
-                    ctx.arc(x * tileSize + tileSize / 2, y * tileSize + tileSize / 2, tileSize * 0.15, 0, Math.PI * 2);
-                    ctx.fillStyle = dotColor;
+                    ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, TILE_SIZE * 0.1, 0, 2 * Math.PI);
                     ctx.fill();
                 } else if (tile === 3) { // Power Pellet
+                    ctx.fillStyle = 'var(--pellets)';
                     ctx.beginPath();
-                    ctx.arc(x * tileSize + tileSize / 2, y * tileSize + tileSize / 2, tileSize * 0.3, 0, Math.PI * 2);
-                    ctx.fillStyle = pelletColor;
+                    ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, TILE_SIZE * 0.25, 0, 2 * Math.PI);
                     ctx.fill();
                 }
             }
         }
     }
 
-    // --- Game Logic ---
-    function update() {
-        if (gameState !== 'playing') return;
-        player.update();
-        ghost.update();
-        checkCollisions();
-        checkWinCondition();
+    // --- UI Update Functions ---
+    function updateScoreUI() {
+        scoreEl.textContent = score;
     }
 
-    function checkCollisions() {
-        // Player with dots/pellets
-        const playerGridX = Math.floor(player.x / tileSize);
-        const playerGridY = Math.floor(player.y / tileSize);
-        
-        if (grid[playerGridY] && grid[playerGridY][playerGridX] !== undefined) {
-             const tile = grid[playerGridY][playerGridX];
-
-            if (tile === 0) { // Standard Dot
-                grid[playerGridY][playerGridX] = 2; // Mark as empty space
-                score += 10;
-                totalDots--;
-                updateUI();
-            } else if (tile === 3) { // Power Pellet
-                grid[playerGridY][playerGridX] = 2;
-                score += 50;
-                totalDots--;
-                updateUI();
-                // Future power-up logic can be added here
-            }
-        }
-        
-        // Player with ghost
-        const dist = Math.hypot(player.x - ghost.x, player.y - ghost.y);
-        if (dist < player.radius + ghost.radius) {
-            loseLife();
-        }
-    }
-    
-    function checkWinCondition() {
-        if (totalDots <= 0) {
-            endGame(true); // Player wins
-        }
+    function updateHighScoreUI() {
+        highscoreEl.textContent = highScore;
     }
 
-    // --- Main Game Loop ---
-    function gameLoop() {
-        update();
-        draw();
-        // Continue the loop as long as the game is not over
-        if (gameState !== 'gameOver') {
-            requestAnimationFrame(gameLoop);
-        }
+    function updateLivesUI() {
+        livesEl.textContent = '♥'.repeat(lives);
     }
-    
+
     // --- Event Listeners & Controls ---
-    function handleKeyDown(e) {
-        if (gameState !== 'playing' || !player) return;
-        const key = e.key;
-        let nextDir = null;
-        if (key === 'ArrowUp' || key.toLowerCase() === 'w') nextDir = { x: 0, y: -1 };
-        if (key === 'ArrowDown' || key.toLowerCase() === 's') nextDir = { x: 0, y: 1 };
-        if (key === 'ArrowLeft' || key.toLowerCase() === 'a') nextDir = { x: -1, y: 0 };
-        if (key === 'ArrowRight' || key.toLowerCase() === 'd') nextDir = { x: 1, y: 0 };
+    function setupEventListeners() {
+        window.addEventListener('resize', resizeCanvas);
         
-        if(nextDir && (player.direction.x !== -nextDir.x || player.direction.y !== -nextDir.y)) {
-            player.nextDirection = nextDir;
-        }
+        // Desktop Controls
+        window.addEventListener('keydown', handleKeyDown);
+
+        // Mobile Controls
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+        
+        // Menu Buttons
+        startEasyBtn.addEventListener('click', () => startGame('easy'));
+        startHardBtn.addEventListener('click', () => startGame('hard'));
+        playAgainBtn.addEventListener('click', () => {
+            gameOverMenu.classList.add('hidden');
+            startMenu.classList.remove('hidden');
+        });
     }
     
-    let touchStartX, touchStartY;
+    function handleKeyDown(e) {
+        if (gameState !== 'playing') return;
+        e.preventDefault();
+        let newDir = null;
+        switch(e.key) {
+            case 'ArrowUp': case 'w': newDir = { x: 0, y: -1 }; break;
+            case 'ArrowDown': case 's': newDir = { x: 0, y: 1 }; break;
+            case 'ArrowLeft': case 'a': newDir = { x: -1, y: 0 }; break;
+            case 'ArrowRight': case 'd': newDir = { x: 1, y: 0 }; break;
+        }
+        if (newDir) {
+            player.nextDir = newDir;
+        }
+    }
+
     function handleTouchStart(e) {
         if (gameState !== 'playing') return;
         e.preventDefault();
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
     }
-    
+
     function handleTouchEnd(e) {
-        if (gameState !== 'playing' || !player) return;
+        if (gameState !== 'playing' || touchStartX === 0) return;
         e.preventDefault();
         const touchEndX = e.changedTouches[0].clientX;
         const touchEndY = e.changedTouches[0].clientY;
-        
+
         const dx = touchEndX - touchStartX;
         const dy = touchEndY - touchStartY;
         
-        let nextDir = null;
+        // Reset for next touch
+        touchStartX = 0;
+        touchStartY = 0;
+
+        let newDir = null;
         if (Math.abs(dx) > Math.abs(dy)) { // Horizontal swipe
-            nextDir = dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
+            if (Math.abs(dx) > 30) { // Swipe threshold
+               newDir = { x: dx > 0 ? 1 : -1, y: 0 };
+            }
         } else { // Vertical swipe
-            nextDir = dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
+            if (Math.abs(dy) > 30) { // Swipe threshold
+               newDir = { x: 0, y: dy > 0 ? 1 : -1 };
+            }
         }
-        
-        if(nextDir && (player.direction.x !== -nextDir.x || player.direction.y !== -nextDir.y)) {
-            player.nextDirection = nextDir;
+        if(newDir) {
+            player.nextDir = newDir;
         }
     }
 
-    // --- Utility Functions ---
+    // --- Canvas Sizing ---
     function resizeCanvas() {
-        const container = document.getElementById('game-container');
+        const container = document.getElementById('canvas-wrapper');
         const size = container.clientWidth;
+        
         canvas.width = size;
         canvas.height = size;
-        tileSize = canvas.width / TILE_SIZE; // Recalculate tile size for rendering
-        if(gameState !== 'menu') {
-            draw(); // Redraw static elements on resize
+        TILE_SIZE = canvas.width / GRID_SIZE;
+        
+        // If a game is in progress, redraw everything to scale
+        if (gameState !== 'menu') {
+            // We need to rescale character positions if the game is active
+            if(player) {
+                const oldTileSize = player.radius * 2.5;
+                const scaleFactor = TILE_SIZE / oldTileSize;
+                player.x *= scaleFactor;
+                player.y *= scaleFactor;
+                player.radius = TILE_SIZE / 2.5;
+            }
+            if(ghost) {
+                const oldTileSize = ghost.radius * 2.5;
+                const scaleFactor = TILE_SIZE / oldTileSize;
+                ghost.x *= scaleFactor;
+                ghost.y *= scaleFactor;
+                ghost.radius = TILE_SIZE / 2.5;
+            }
+            
+            // Redraw immediately after resize
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawMaze();
+            if(player) player.draw();
+            if(ghost) ghost.draw();
         }
     }
-    
-    function getCssVar(varName) {
-        return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-    }
 
-    // --- Initial Setup ---
-    window.addEventListener('resize', resizeCanvas);
-    document.addEventListener('keydown', handleKeyDown);
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-    
-    startEasyBtn.addEventListener('click', () => startGame('easy'));
-    startHardBtn.addEventListener('click', () => startGame('hard'));
-    playAgainBtn.addEventListener('click', () => {
-        gameOverMenu.style.display = 'none';
-        startMenu.style.display = 'flex';
-    });
-
+    // --- Start the engine ---
     init();
 });
