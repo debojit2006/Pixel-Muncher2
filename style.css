@@ -1,65 +1,76 @@
-/* CSS styles based on the project specification */
+/* --- 1. Visuals, Art Style & Color Palette --- */
 :root {
-    --background-color: #2c3e50;
-    --wall-color: #3498db;
-    --dot-color: #ecf0f1;
-    --power-pellet-color: #f1c40f;
-    --player-color: #f1c40f;
-    --ghost-color: #e74c3c;
-    --text-color: #ecf0f1;
-    --menu-background: #34495e;
-    --menu-overlay: rgba(0, 0, 0, 0.75);
-    --button-color: #3498db;
-    --button-hover-color: #2980b9;
+    --background-dark: #2c3e50;
+    --background-menu: #34495e;
+    --walls: #3498db;
+    --dots: #ecf0f1;
+    --pellets: #f1c40f;
+    --player: #f1c40f;
+    --ghost: #e74c3c;
+    --text: #ecf0f1;
+    --button: #3498db;
+    --button-hover: #2980b9;
+    --overlay: rgba(0, 0, 0, 0.75);
 }
 
-body {
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    background-color: var(--background-color);
-    color: var(--text-color);
-    font-family: 'Press Start 2P', cursive;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    overflow: hidden;
 }
 
-.container {
+html, body {
     width: 100%;
-    max-width: 500px;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--background-dark);
+    color: var(--text);
+    font-family: 'Press Start 2P', cursive;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    touch-action: none; /* Prevents browser gestures like pull-to-refresh */
+}
+
+/* --- 2. Game Screen, UI & UX --- */
+#game-container {
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
+    max-width: 600px; /* Max width for large screens */
+    padding: 10px;
 }
 
 #ui-bar {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     width: 100%;
     padding: 10px 20px;
-    box-sizing: border-box;
     font-size: 16px;
+    margin-bottom: 10px;
 }
 
-#score, #high-score, #lives {
+#score-container, #highscore-container, #lives-container {
     flex: 1;
 }
+#highscore-container { text-align: center; }
+#lives-container { text-align: right; }
+#lives { color: var(--ghost); }
 
-#high-score {
-    text-align: center;
-}
-
-#lives {
-    text-align: right;
-}
-
-#game-container {
+#canvas-wrapper {
     position: relative;
     width: 100%;
-    padding-top: 100%; /* 1:1 Aspect Ratio */
+    background-color: #000;
+}
+
+/* This pseudo-element forces the 1:1 aspect ratio */
+#canvas-wrapper::before {
+    content: '';
+    display: block;
+    padding-top: 100%;
 }
 
 #gameCanvas {
@@ -68,61 +79,83 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--background-color);
+    background-color: var(--background-dark);
     border-radius: 8px;
 }
 
+/* Game Menus (Modals) */
 .menu {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--menu-overlay);
+    background-color: var(--overlay);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
     z-index: 10;
+    color: var(--text);
     border-radius: 8px;
 }
 
 .menu-box {
-    background-color: var(--menu-background);
-    padding: 30px;
+    background-color: var(--background-menu);
+    padding: 40px;
     border-radius: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    border: 3px solid var(--walls);
 }
 
 .menu h1 {
-    font-size: 2.5em;
-    margin-bottom: 20px;
-    color: var(--power-pellet-color);
+    font-size: 2em;
+    margin-bottom: 10px;
+    color: var(--player);
 }
 
-.menu p {
-    font-size: 1.2em;
+.menu h2 {
+    font-size: 1.5em;
     margin-bottom: 30px;
 }
 
-.menu button {
-    background-color: var(--button-color);
-    color: var(--text-color);
-    border: none;
+.menu p {
+    margin-bottom: 20px;
+}
+
+.menu-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
     padding: 15px 30px;
     font-family: 'Press Start 2P', cursive;
     font-size: 1em;
-    cursor: pointer;
+    color: var(--text);
+    background-color: var(--button);
+    border: none;
     border-radius: 8px;
-    transition: background-color 0.3s ease;
-    margin: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 4px solid #20639B;
 }
 
-.menu button:hover {
-    background-color: var(--button-hover-color);
+.btn:hover {
+    background-color: var(--button-hover);
 }
 
-#game-over-menu {
+.hidden {
     display: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    #ui-bar {
+        font-size: 12px;
+        padding: 10px 5px;
+    }
+    .menu h1 { font-size: 1.5em; }
+    .menu h2 { font-size: 1.2em; }
+    .btn { padding: 12px 20px; font-size: 0.9em;}
 }
