@@ -53,11 +53,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Game Objects ---
     class Character {
-        constructor(x, y, radius, color) {
+        constructor(x, y, radius, colorName) {
             this.x = x;
             this.y = y;
             this.radius = radius;
-            this.color = color;
+            this.colorName = colorName; // Store the CSS variable name
+            this.color = getCssVar(colorName); // Get initial color
             this.direction = { x: 0, y: 0 };
             this.nextDirection = { x: 0, y: 0 };
             this.speed = 0;
@@ -146,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 for (const move of directions) {
                     // AI rule: Don't reverse direction unless at a dead end
-                    if (move.x === -this.direction.x && move.y === -this.direction.y) {
+                    if (possibleMoves.length > 1 && move.x === -this.direction.x && move.y === -this.direction.y) {
                         continue;
                     }
                     
@@ -206,10 +207,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function resetCharacters() {
-        player = new Character(tileSize * 1.5, tileSize * 1.5, tileSize * 0.4, getCssVar('--player-color'));
+        player = new Character(tileSize * 1.5, tileSize * 1.5, tileSize * 0.4, '--player-color');
         player.speed = 0.8 * V;
         
-        ghost = new Ghost(tileSize * 10.5, tileSize * 8.5, tileSize * 0.4, getCssVar('--ghost-color'));
+        ghost = new Ghost(tileSize * 10.5, tileSize * 8.5, tileSize * 0.4, '--ghost-color');
         ghost.speed = difficulty === 'easy' ? 0.75 * V * 0.75 : 0.75 * V * 1.25;
         ghost.direction = { x: 1, y: 0 };
     }
@@ -255,8 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         drawGrid();
-        player.draw();
-        ghost.draw();
+
+        // Only draw characters if they exist (after game has started)
+        if (player && ghost) {
+            player.draw();
+            ghost.draw();
+        }
     }
 
     function drawGrid() {
@@ -341,15 +346,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Event Listeners & Controls ---
     function handleKeyDown(e) {
-        if (gameState !== 'playing') return;
+        if (gameState !== 'playing' || !player) return;
         const key = e.key;
-        let nextDir = { x: 0, y: 0 };
+        let nextDir = null;
         if (key === 'ArrowUp' || key.toLowerCase() === 'w') nextDir = { x: 0, y: -1 };
         if (key === 'ArrowDown' || key.toLowerCase() === 's') nextDir = { x: 0, y: 1 };
         if (key === 'ArrowLeft' || key.toLowerCase() === 'a') nextDir = { x: -1, y: 0 };
         if (key === 'ArrowRight' || key.toLowerCase() === 'd') nextDir = { x: 1, y: 0 };
         
-        if(nextDir.x !== 0 || nextDir.y !== 0) {
+        if(nextDir && (player.direction.x !== -nextDir.x || player.direction.y !== -nextDir.y)) {
             player.nextDirection = nextDir;
         }
     }
@@ -363,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function handleTouchEnd(e) {
-        if (gameState !== 'playing') return;
+        if (gameState !== 'playing' || !player) return;
         e.preventDefault();
         const touchEndX = e.changedTouches[0].clientX;
         const touchEndY = e.changedTouches[0].clientY;
@@ -371,14 +376,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const dx = touchEndX - touchStartX;
         const dy = touchEndY - touchStartY;
         
-        let nextDir = { x: 0, y: 0 };
+        let nextDir = null;
         if (Math.abs(dx) > Math.abs(dy)) { // Horizontal swipe
             nextDir = dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
         } else { // Vertical swipe
             nextDir = dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
         }
         
-        if(nextDir.x !== 0 || nextDir.y !== 0) {
+        if(nextDir && (player.direction.x !== -nextDir.x || player.direction.y !== -nextDir.y)) {
             player.nextDirection = nextDir;
         }
     }
