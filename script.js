@@ -206,10 +206,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function resetCharacters() {
-        player = new Character(tileSize * 1.5, tileSize * 1.5, tileSize * 0.4, 'var(--player-color)');
+        player = new Character(tileSize * 1.5, tileSize * 1.5, tileSize * 0.4, getCssVar('--player-color'));
         player.speed = 0.8 * V;
         
-        ghost = new Ghost(tileSize * 10.5, tileSize * 8.5, tileSize * 0.4, 'var(--ghost-color)');
+        ghost = new Ghost(tileSize * 10.5, tileSize * 8.5, tileSize * 0.4, getCssVar('--ghost-color'));
         ghost.speed = difficulty === 'easy' ? 0.75 * V * 0.75 : 0.75 * V * 1.25;
         ghost.direction = { x: 1, y: 0 };
     }
@@ -254,10 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear the canvas for the new frame
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Set colors from CSS variables
-        player.color = getCssVar('--player-color');
-        ghost.color = getCssVar('--ghost-color');
-
         drawGrid();
         player.draw();
         ghost.draw();
@@ -347,14 +343,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleKeyDown(e) {
         if (gameState !== 'playing') return;
         const key = e.key;
-        let nextDir = { ...player.nextDirection };
+        let nextDir = { x: 0, y: 0 };
         if (key === 'ArrowUp' || key.toLowerCase() === 'w') nextDir = { x: 0, y: -1 };
         if (key === 'ArrowDown' || key.toLowerCase() === 's') nextDir = { x: 0, y: 1 };
         if (key === 'ArrowLeft' || key.toLowerCase() === 'a') nextDir = { x: -1, y: 0 };
         if (key === 'ArrowRight' || key.toLowerCase() === 'd') nextDir = { x: 1, y: 0 };
         
-        // Prevent immediate reversal by checking against the current direction
-        if (player.direction.x !== -nextDir.x || player.direction.y !== -nextDir.y) {
+        if(nextDir.x !== 0 || nextDir.y !== 0) {
             player.nextDirection = nextDir;
         }
     }
@@ -376,15 +371,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const dx = touchEndX - touchStartX;
         const dy = touchEndY - touchStartY;
         
-        let nextDir = { ...player.nextDirection };
+        let nextDir = { x: 0, y: 0 };
         if (Math.abs(dx) > Math.abs(dy)) { // Horizontal swipe
             nextDir = dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
         } else { // Vertical swipe
             nextDir = dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
         }
         
-        // Prevent immediate reversal
-        if (player.direction.x !== -nextDir.x || player.direction.y !== -nextDir.y) {
+        if(nextDir.x !== 0 || nextDir.y !== 0) {
             player.nextDirection = nextDir;
         }
     }
