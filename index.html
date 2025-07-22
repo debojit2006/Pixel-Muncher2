@@ -2,49 +2,53 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Pixel Muncher</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Link to the external CSS file -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="container">
-        <!-- UI Bar for Score, High Score, and Lives -->
+    <div id="game-container">
+        <!-- Top UI Bar -->
         <div id="ui-bar">
-            <div id="score">SCORE: 0</div>
-            <div id="high-score">HIGH SCORE: 0</div>
-            <div id="lives">LIVES: ♥ ♥ ♥</div>
+            <div id="score-container">SCORE: <span id="score">0</span></div>
+            <div id="highscore-container">HIGH SCORE: <span id="highscore">0</span></div>
+            <div id="lives-container">LIVES: <span id="lives">♥♥♥</span></div>
         </div>
 
-        <!-- Main Game Container -->
-        <div id="game-container">
+        <!-- Game Canvas and Menus Wrapper -->
+        <div id="canvas-wrapper">
             <canvas id="gameCanvas"></canvas>
 
             <!-- Start Menu -->
             <div id="start-menu" class="menu">
-                 <div class="menu-box">
-                    <h1>Pixel Muncher</h1>
-                    <p>Select Difficulty</p>
-                    <button id="start-easy">Easy</button>
-                    <button id="start-hard">Hard</button>
+                <div class="menu-box">
+                    <h1>PIXEL MUNCHER</h1>
+                    <h2>CHOOSE DIFFICULTY</h2>
+                    <div class="menu-buttons">
+                        <button id="start-easy" class="btn">EASY</button>
+                        <button id="start-hard" class="btn">HARD</button>
+                    </div>
                 </div>
             </div>
 
             <!-- Game Over Menu -->
-            <div id="game-over-menu" class="menu">
-                <div class="menu-box">
+            <div id="game-over-menu" class="menu hidden">
+                 <div class="menu-box">
                     <h1 id="game-over-title">GAME OVER</h1>
-                    <p id="final-score">YOUR SCORE: 0</p>
-                    <p id="final-high-score">HIGH SCORE: 0</p>
-                    <button id="play-again">Play Again</button>
+                    <h2 id="final-score-text">FINAL SCORE: 0</h2>
+                    <p id="final-highscore-text">HIGH SCORE: 0</p>
+                    <button id="play-again" class="btn">PLAY AGAIN</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Link to the external JavaScript file -->
     <script src="script.js"></script>
 </body>
 </html>
